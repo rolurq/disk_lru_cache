@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:pedantic/pedantic.dart';
+import 'package:path/path.dart' as p;
 
 import 'ioutil.dart';
 import 'lru_map.dart';
@@ -70,10 +71,10 @@ class DiskLruCache implements Closeable {
       this.opCompactThreshold = MAX_OP_COUNT})
       : assert(directory != null),
         _filesCount = filesCount,
-        _lruEntries = new LruMap(),
-        _recordFile = new File("${directory.path}/record"),
-        _recordFileTmp = new File("${directory.path}/record.tmp"),
-        _recordFileBackup = new File("${directory.path}/record.bak");
+        _lruEntries = LruMap(),
+        _recordFile = File(p.join(directory.path, "record")),
+        _recordFileTmp = File(p.join(directory.path, "record.tmp")),
+        _recordFileBackup = File(p.join(directory.path, "record.bak"));
 
   /// Returns a snapshot of the entry named key, or null if it doesn't exist is not currently
   /// readable. If a value is returned, it is moved to the tail of the LRU queue.
@@ -642,8 +643,8 @@ class CacheEntry {
         lengths = List(cache._filesCount) {
     // The names are repetitive so re-use the same builder to avoid allocations.
     for (int i = 0; i < cache._filesCount; i++) {
-      cleanFiles[i] = new File("${cache.directory.path}/$key.$i");
-      dirtyFiles[i] = new File("${cache.directory.path}/$key.$i.tmp");
+      cleanFiles[i] = File(p.join(cache.directory.path, "$key.$i"));
+      dirtyFiles[i] = File(p.join(cache.directory.path, "$key.$i.tmp"));
 
       this.lengths[i] = 0;
     }
