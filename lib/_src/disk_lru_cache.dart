@@ -251,6 +251,7 @@ class DiskLruCache implements Closeable {
       _recordWriter = _newRecordWriter();
       // _hasRecordError = false;
 
+      _opCount = 0;
       print("Rebuild record success!");
     });
   }
