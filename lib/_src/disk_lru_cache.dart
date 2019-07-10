@@ -4,8 +4,6 @@ import 'dart:io';
 import 'dart:typed_data';
 
 
-///
-const _ = null;
 import 'ioutil.dart';
 import 'lru_map.dart';
 
@@ -85,7 +83,7 @@ class DiskLruCache implements Closeable {
       await _lazyInit();
       CacheEntry entry = _lruEntries[key];
       if (entry == null || !entry.ready) {
-        return _;
+        return null;
       }
 
       CacheSnapshot snapshot = await entry.snapshot();
@@ -193,11 +191,11 @@ class DiskLruCache implements Closeable {
       CacheEntry toEvict = _lruEntries.removeHead();
       await _removeEntry(toEvict);
     }
-    _mostRecentTrimFailed = false;
+    // _mostRecentTrimFailed = false;
   }
 
   Future _cleanUp() {
-    return SynchronizedLock.synchronized(this, () async {
+    return _lock.synchronized(() async {
       try {
         print("Start cleanup");
         await _trimToSize();
@@ -212,7 +210,7 @@ class DiskLruCache implements Closeable {
   }
 
   Future _rebuildRecord() {
-    return SynchronizedLock.synchronized(this, () async {
+    return _lock.synchronized(() async {
       print("Start to rebuild record");
       if (_recordWriter != null) {
         await _recordWriter.close();
@@ -233,13 +231,13 @@ class DiskLruCache implements Closeable {
         await writer.flush();
       } catch (e) {
         print("Cannot write file at this time $e");
-        return _;
+        return null;
       } finally {
         try {
           await writer.close();
         } catch (e) {
           print("Cannot write file at this time $e");
-          return _;
+          return null;
         }
       }
 
@@ -270,7 +268,7 @@ class DiskLruCache implements Closeable {
   Future _lazyInit() {
     return SynchronizedLock.synchronized(this, () async {
       if (_initialized) {
-        return _;
+        return null;
       }
       if (!await this.directory.exists()) {
         await this.directory.create(recursive: true);
@@ -291,7 +289,7 @@ class DiskLruCache implements Closeable {
           await _parseRecordFile();
           await _processRecords();
           _initialized = true;
-          return _;
+          return null;
         } catch (e) {
           print("DiskLruCache error when init $e");
           try {
@@ -404,7 +402,7 @@ class DiskLruCache implements Closeable {
   @override
   Future close() {
     return SynchronizedLock.synchronized(this, () async {
-      if (_closed) return _;
+      if (_closed) return null;
       try {
         if (_recordWriter != null) {
           await _recordWriter.close();
@@ -415,7 +413,7 @@ class DiskLruCache implements Closeable {
         _initialized = false;
       }
       print("Cache is closed");
-      return _;
+      return null;
     });
   }
 
@@ -501,12 +499,12 @@ class DiskLruCache implements Closeable {
       if (!entry.ready) {
         if (!editor.hasValues.every((bool value) => value)) {
           _rollback(editor);
-          return _;
+          return null;
         }
         for (File file in editor.entry.dirtyFiles) {
           if (!await file.exists()) {
             _rollback(editor);
-            return _;
+            return null;
           }
         }
       }
