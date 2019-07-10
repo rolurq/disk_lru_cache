@@ -3,6 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:math' as Math;
 
+import 'package:pedantic/pedantic.dart';
+
 import 'package:disk_lru_cache/disk_lru_cache.dart';
 
 Future testCache() async {
@@ -47,7 +49,7 @@ Future testCache() async {
     HttpClientResponse response = await request.close();
     Stream<List<int>> stream = await editor.copyStream(0, response);
     // The bytes has been written to disk at this point.
-    await stream.drain();
+    await stream.drain<void>();
     await editor.commit();
 
     // read stream
@@ -73,12 +75,12 @@ Future testCache() async {
 
   Future test() async {
     // we must wait the file created
-    List<Future> list = [];
-    List<Future> writeDisk = [];
-    List<Future> openWrite = [];
+    List<Future<void>> list = [];
+    List<Future<void>> writeDisk = [];
+    List<Future<void>> openWrite = [];
 
     void editValue(DiskLruCache cache, String key, String value) {
-      list.add(cache.edit(key).then((CacheEditor editor) {
+      list.add(cache.edit(key).then<void>((editor) {
         if (editor != null) {
           openWrite.add(editor.newSink(0).then((IOSink sink) async {
             writeDisk.add((() async {
@@ -91,7 +93,7 @@ Future testCache() async {
                 print("Sink is null");
               }
             })());
-          }).catchError((e) {
+          }).catchError((Object  e) {
             print(e);
           }));
         } else {
@@ -110,7 +112,7 @@ Future testCache() async {
       for (int i = 0; i < 10; ++i) {
         editValue(cache, "${random()}", get200k());
         String key = "${random()}";
-        cache.get(key).then((CacheSnapshot s) {
+        unawaited(cache.get(key).then((CacheSnapshot s) {
           if (s == null) {
             print('Cache miss $key');
             return;
@@ -118,7 +120,7 @@ Future testCache() async {
           s.getString(0).then((String str) {
             print("Cache hit $key=$str");
           });
-        });
+        }));
         //cache.remove("${random()}");
       }
     }
