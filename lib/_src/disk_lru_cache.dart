@@ -3,12 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:disk_lru_cache/_src/ioutil.dart';
-import 'package:disk_lru_cache/_src/lock.dart';
-import 'package:disk_lru_cache/_src/lru_map.dart';
 
 ///
 const _ = null;
+import 'ioutil.dart';
+import 'lru_map.dart';
 
 ///
 class DiskLruCache implements Closeable {
