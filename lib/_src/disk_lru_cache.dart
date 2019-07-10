@@ -4,10 +4,13 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:pedantic/pedantic.dart';
+import 'package:synchronized/synchronized.dart';
 import 'package:path/path.dart' as p;
 
 import 'ioutil.dart';
 import 'lru_map.dart';
+
+final _lock = Lock(reentrant: true);
 
 ///
 class DiskLruCache implements Closeable {
@@ -79,7 +82,7 @@ class DiskLruCache implements Closeable {
   /// Returns a snapshot of the entry named key, or null if it doesn't exist is not currently
   /// readable. If a value is returned, it is moved to the tail of the LRU queue.
   Future<CacheSnapshot> get(String key) {
-    return SynchronizedLock.synchronized<CacheSnapshot>(this, () async {
+    return _lock.synchronized<CacheSnapshot>(() async {
       await _lazyInit();
       CacheEntry entry = _lruEntries[key];
       if (entry == null || !entry.ready) {
@@ -98,7 +101,7 @@ class DiskLruCache implements Closeable {
   }
 
   Future clean() {
-    return SynchronizedLock.synchronized(this, () async {
+    return _lock.synchronized(() async {
       Iterable<CacheEntry> entries = await values;
       List<Future<bool>> list = [];
       for (CacheEntry entry in entries) {
@@ -109,8 +112,8 @@ class DiskLruCache implements Closeable {
   }
 
   Future<CacheEditor> edit(String key,
-    return SynchronizedLock.synchronized<CacheEditor>(this, () async {
       {int sequenceNumber = ANY_SEQUENCE_NUMBER}) {
+    return _lock.synchronized<CacheEditor>(() async {
       await _lazyInit();
 
       CacheEntry entry = _lruEntries[key];
@@ -263,7 +266,7 @@ class DiskLruCache implements Closeable {
 
   /// Read record file, rebuild it if broken.
   Future _lazyInit() {
-    return SynchronizedLock.synchronized(this, () async {
+    return _lock.synchronized(() async {
       if (_initialized) {
         return null;
       }
@@ -306,7 +309,7 @@ class DiskLruCache implements Closeable {
 
   /// make copy of current values
   Future<Iterable<CacheEntry>> get values {
-    return SynchronizedLock.synchronized(this, () async {
+    return _lock.synchronized(() async {
       await _lazyInit();
       return List<CacheEntry>.from(_lruEntries.values);
     });
@@ -395,7 +398,7 @@ class DiskLruCache implements Closeable {
   /// Close the cache, do some clean stuff, it is an error to use cache when cache is closed.
   @override
   Future close() {
-    return SynchronizedLock.synchronized(this, () async {
+    return _lock.synchronized(() async {
       if (_closed) return null;
       try {
         if (_recordWriter != null) {
@@ -412,7 +415,7 @@ class DiskLruCache implements Closeable {
   }
 
   Future<bool> remove(String key) {
-    return SynchronizedLock.synchronized<bool>(this, () async {
+    return _lock.synchronized<bool>(() async {
       await _lazyInit();
       CacheEntry entry = _lruEntries[key];
       if (entry == null) return false;
@@ -461,7 +464,7 @@ class DiskLruCache implements Closeable {
 
   /// clean the entry,remove from cache
   Future _rollback(CacheEditor editor) {
-    return SynchronizedLock.synchronized(this, () async {
+    return _lock.synchronized(() async {
       CacheEntry entry = editor.entry;
       entry.currentEditor = null;
       await Future.wait(entry.dirtyFiles.map(_deleteSafe));
@@ -484,7 +487,7 @@ class DiskLruCache implements Closeable {
   }
 
   Future _commit(CacheEditor editor) {
-    return SynchronizedLock.synchronized(this, () async {
+    return _lock.synchronized(() async {
       CacheEntry entry = editor.entry;
       if (entry.currentEditor != editor) {
         throw Exception("Commit editor's entry did not match the editor");
@@ -555,7 +558,7 @@ class CacheEditor {
           ..fillRange(0, cache._filesCount, false);
 
   Future detach() {
-    return SynchronizedLock.synchronized(this, () async {
+    return _lock.synchronized(() async {
       if (entry.currentEditor == this) {
         for (int i = 0, c = cache._filesCount; i < c; i++) {
           await cache._deleteSafe(entry.dirtyFiles[i]);
@@ -571,7 +574,7 @@ class CacheEditor {
   }
 
   Future commit() async {
-    return SynchronizedLock.synchronized(cache, () async {
+    return _lock.synchronized(() async {
       if (_done) {
         return;
       }
@@ -598,7 +601,7 @@ class CacheEditor {
   }
 
   Future<IOSink> newSink(int index) {
-    return SynchronizedLock.synchronized<IOSink>(cache, () {
+    return _lock.synchronized<IOSink>(() {
       if (_done) {
         throw Exception("The editor is finish done it's job");
       }
