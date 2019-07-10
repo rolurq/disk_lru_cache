@@ -1,13 +1,10 @@
-import 'dart:io';
-
-import 'package:disk_lru_cache/_src/disk_lru_cache.dart';
 import 'package:test/test.dart';
 
 import 'package:disk_lru_cache/disk_lru_cache.dart';
 
 void main() {
   test('Lru map', () {
-    final LruMap<String, int> map = new LruMap();
+    final LruMap<String, int> map = LruMap();
 
     expect(map.values.toList().length, 0);
 
@@ -109,20 +106,20 @@ void main() {
 
     expect(casted != null, true);
 
-    int now = new DateTime.now().millisecondsSinceEpoch;
+    int now = DateTime.now().millisecondsSinceEpoch;
     for (int i = 0; i < 10000; ++i) {
       map['key$i'] = i;
     }
 
-    print(new DateTime.now().millisecondsSinceEpoch - now);
+    print(DateTime.now().millisecondsSinceEpoch - now);
 
-    now = new DateTime.now().millisecondsSinceEpoch;
+    now = DateTime.now().millisecondsSinceEpoch;
     Map org = {};
     for (int i = 0; i < 10000; ++i) {
       org['key$i'] = i;
     }
 
-    print(new DateTime.now().millisecondsSinceEpoch - now);
+    print(DateTime.now().millisecondsSinceEpoch - now);
   });
 
   test("test map ", () {
@@ -147,7 +144,7 @@ void main() {
   test("Lru map other", () {
     LruMap map = LruMap.of({"a": "1", "b": "2", "c": "3"});
 
-    LruMap other = new LruMap();
+    LruMap other = LruMap();
     other.addEntries(map.entries);
 
     print(other.values);

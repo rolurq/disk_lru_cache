@@ -23,7 +23,7 @@ class LruMap<K, V> implements Map<K, V> {
   _Entry<K, V> head;
   _Entry<K, V> tail;
 
-  final Map<K, _Entry<K, V>> _inner = new Map();
+  final Map<K, _Entry<K, V>> _inner = Map();
 
   int get length => _inner.length;
 
@@ -33,7 +33,7 @@ class LruMap<K, V> implements Map<K, V> {
     if (map is LruMap<K, V>) {
       return map;
     }
-    LruMap<K, V> result = new LruMap<K, V>();
+    LruMap<K, V> result = LruMap<K, V>();
     result.addAll(map);
     return result;
   }
@@ -72,14 +72,16 @@ class LruMap<K, V> implements Map<K, V> {
     // unlink
     _Entry<K, V> p = e, b = p.before, a = p.after;
     p.before = p.after = null;
-    if (b == null)
+    if (b == null) {
       head = a;
-    else
+    } else {
       b.after = a;
-    if (a == null)
+    }
+    if (a == null) {
       tail = b;
-    else
+    } else {
       a.before = b;
+    }
   }
 
   V remove(Object key) {
@@ -92,9 +94,9 @@ class LruMap<K, V> implements Map<K, V> {
   void _linkNodeLast(_Entry<K, V> p) {
     _Entry<K, V> last = tail;
     tail = p;
-    if (last == null)
+    if (last == null) {
       head = p;
-    else {
+    } else {
       p.before = last;
       last.after = p;
     }
@@ -126,17 +128,19 @@ class LruMap<K, V> implements Map<K, V> {
     if ((last = tail) != e) {
       _Entry<K, V> p = e, b = p.before, a = p.after;
       p.after = null;
-      if (b == null)
+      if (b == null) {
         head = a;
-      else
+      } else {
         b.after = a;
-      if (a != null)
+      }
+      if (a != null) {
         a.before = b;
-      else
+      } else {
         last = b;
-      if (last == null)
+      }
+      if (last == null) {
         head = p;
-      else {
+      } else {
         p.before = last;
         last.after = p;
       }
@@ -201,13 +205,13 @@ class LruMap<K, V> implements Map<K, V> {
   Iterable<MapEntry<K, V>> get entries {
     List<MapEntry<K, V>> list = [];
     for (_Entry<K, V> e = head; e != null; e = e.after) {
-      list.add(new MapEntry(e.key, e.value));
+      list.add(MapEntry(e.key, e.value));
     }
     return list;
   }
 
   _Entry _createNew(K key, V value) {
-    _Entry<K, V> entry = new _Entry(key: key, value: value);
+    _Entry<K, V> entry = _Entry(key: key, value: value);
     _linkNodeLast(entry);
     return entry;
   }
@@ -265,7 +269,7 @@ class LruMap<K, V> implements Map<K, V> {
   }
 
   Map<RK, RV> retype<RK, RV>() {
-    throw new Exception("Not implement");
+    throw Exception("Not implement");
   }
 
   @override
@@ -275,7 +279,7 @@ class LruMap<K, V> implements Map<K, V> {
 
   @override
   Map<K2, V2> map<K2, V2>(MapEntry<K2, V2> Function(K key, V value) f) {
-    throw new Exception("Not implement");
+    throw Exception("Not implement");
   }
 }
 

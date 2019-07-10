@@ -68,7 +68,7 @@ class CloseableStream<T> extends Stream<T> implements Closeable {
   @override
   Future close() {
     if (_streamSubscription == null) {
-      return new Future.value();
+      return Future.value();
     }
     return _streamSubscription.cancel();
   }
@@ -77,8 +77,8 @@ class CloseableStream<T> extends Stream<T> implements Closeable {
 class IoUtil {
   static Future<String> stream2String(
       CloseableStream<List<int>> stream, Encoding encoding) {
-    Completer<String> completer = new Completer();
-    StringBuffer stringBuffer = new StringBuffer();
+    Completer<String> completer = Completer();
+    StringBuffer stringBuffer = StringBuffer();
     stream.transform(encoding.decoder).listen((String content) {
       stringBuffer.write(content);
     }, onDone: () {
@@ -110,20 +110,20 @@ class EmptyIOSink implements IOSink {
 
   @override
   Future addStream(Stream<List<int>> stream) {
-    return new Future.value();
+    return Future.value();
   }
 
   @override
   Future close() {
-    return new Future.value();
+    return Future.value();
   }
 
   @override
-  Future get done => new Future.value();
+  Future get done => Future.value();
 
   @override
   Future flush() {
-    return new Future.value();
+    return Future.value();
   }
 
   @override

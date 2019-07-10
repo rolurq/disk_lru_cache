@@ -1,11 +1,8 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:math' as math;
 
-import 'package:disk_lru_cache/_src/disk_lru_cache.dart';
-import 'package:http/http.dart';
 import 'package:test/test.dart';
-import 'dart:math' as Math;
 import 'package:disk_lru_cache/disk_lru_cache.dart';
 
 void main() {
@@ -13,10 +10,10 @@ void main() {
       10 * 1024 * 1024; // 10M,make sure to test rebuild progress below
 
   Directory cacheDirectory =
-      new Directory("${Directory.systemTemp.path}/cache");
+      Directory("${Directory.systemTemp.path}/cache");
 
   test("Basic usage with bytes", () async {
-    DiskLruCache cache = new DiskLruCache(
+    DiskLruCache cache = DiskLruCache(
         maxSize: maxSize,
         directory: cacheDirectory,
         filesCount: 1,
@@ -27,7 +24,7 @@ void main() {
     // write stream
     CacheEditor editor = await cache.edit('imagekey');
     if (editor != null) {
-      HttpClient client = new HttpClient();
+      HttpClient client = HttpClient();
       HttpClientRequest request = await client.openUrl(
           "GET",
           Uri.parse(
@@ -35,7 +32,7 @@ void main() {
       HttpClientResponse response = await request.close();
       Stream<List<int>> stream = await editor.copyStream(0, response);
       // The bytes has been written to disk at this point.
-      await new ByteStream(stream).toBytes();
+      await stream.last;
       await editor.commit();
 
       // read stream
@@ -46,7 +43,7 @@ void main() {
   });
 
   test("Basic usage width string", () async {
-    DiskLruCache cache = new DiskLruCache(
+    DiskLruCache cache = DiskLruCache(
         maxSize: maxSize,
         directory: cacheDirectory,
         filesCount: 1,
@@ -68,7 +65,7 @@ void main() {
   });
 
   Future testCache() async {
-    DiskLruCache cache = new DiskLruCache(
+    DiskLruCache cache = DiskLruCache(
         maxSize: maxSize,
         directory: cacheDirectory,
         filesCount: 1,
@@ -78,7 +75,7 @@ void main() {
     String str200k;
     String get200k() {
       if (str200k == null) {
-        StringBuffer sb = new StringBuffer();
+        StringBuffer sb = StringBuffer();
 
         for (int i = 0, c = 200 * 1024; i < c; ++i) {
           sb.write("a");
@@ -121,7 +118,7 @@ void main() {
       Future useCache(DiskLruCache cache) async {
         int random() {
           // 200k * 100 = 20M
-          return new Math.Random().nextInt(100);
+          return math.Random().nextInt(100);
         }
 
         //we open 10 files at the same time
@@ -153,7 +150,7 @@ void main() {
       await test();
     }
 
-    int size = cache.size;
+    // int size = cache.size;
 
     Iterable<CacheEntry> entries = await cache.values;
     int calcSize = 0;
@@ -170,7 +167,7 @@ void main() {
   }
 
   Future testRemoveAll() async {
-    DiskLruCache cache = new DiskLruCache(
+    DiskLruCache cache = DiskLruCache(
         maxSize: maxSize, directory: cacheDirectory, filesCount: 1);
     List<bool> results = await cache.clean();
     expect(results.every((bool value) => value), true);
@@ -194,7 +191,7 @@ void main() {
   });
 
   test("Test commit errors", () async {
-    DiskLruCache cache = new DiskLruCache(
+    DiskLruCache cache = DiskLruCache(
         maxSize: maxSize, directory: cacheDirectory, filesCount: 2);
     // write stream
     CacheEditor editor = await cache.edit('filekey');
@@ -210,14 +207,14 @@ void main() {
   });
 
   test("Simulate errors when write to disk", () async {
-    DiskLruCache cache = new DiskLruCache(
+    DiskLruCache cache = DiskLruCache(
         maxSize: maxSize, directory: cacheDirectory, filesCount: 1);
     // write stream
     CacheEditor editor = await cache.edit('errorkey');
     if (editor != null) {
       IOSink sink = await editor.newSink(0);
 
-      CacheSnapshot snapshot;
+      // CacheSnapshot snapshot;
 
       sink.write('your value');
       await sink.flush();
@@ -239,7 +236,7 @@ void main() {
   test("Delete file when read", () async {
     //Delete file when read
 
-    DiskLruCache cache = new DiskLruCache(
+    DiskLruCache cache = DiskLruCache(
         maxSize: maxSize, directory: cacheDirectory, filesCount: 1);
 
     CacheEditor editor = await cache.edit('readkey');
@@ -267,14 +264,14 @@ void main() {
   });
 
   test("Leave some dirty and don't handle and close the cache", () async {
-    DiskLruCache cache = new DiskLruCache(
+    DiskLruCache cache = DiskLruCache(
         maxSize: maxSize, directory: cacheDirectory, filesCount: 1);
 
     CacheEditor editor = await cache.edit('readkey');
 
     await cache.close();
 
-    cache = new DiskLruCache(
+    cache = DiskLruCache(
         maxSize: maxSize, directory: cacheDirectory, filesCount: 1);
 
     editor = await cache.edit("readkey");

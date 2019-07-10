@@ -45,18 +45,17 @@ class DiskLruCache implements Closeable {
   int _opCount = 0;
 
   bool _initialized = false;
-  bool _hasRecordError = false;
+  // bool _hasRecordError = false;
 
   bool _closed = false;
 
   /// Cache size in bytes
   int _size = 0;
 
-
   /// Total size in bytes in file system.
   int get size => _size;
 
-  bool _mostRecentTrimFailed = false;
+  // bool _mostRecentTrimFailed = false;
 
   /// IOSink for record file
   IOSink _recordWriter;
@@ -64,12 +63,11 @@ class DiskLruCache implements Closeable {
   int _sequenceNumber = 0;
 
   DiskLruCache(
-      {Directory directory,
-      this.maxSize: 20 * 1024 * 1024,
-      int filesCount: 2,
-      this.opCompactThreshold: MAX_OP_COUNT})
+      {this.directory,
+      this.maxSize = 20 * 1024 * 1024,
+      int filesCount = 2,
+      this.opCompactThreshold = MAX_OP_COUNT})
       : assert(directory != null),
-        this.directory = directory,
         _filesCount = filesCount,
         _lruEntries = new LruMap(),
         _recordFile = new File("${directory.path}/record"),
@@ -109,8 +107,8 @@ class DiskLruCache implements Closeable {
   }
 
   Future<CacheEditor> edit(String key,
-      {int sequenceNumber: ANY_SEQUENCE_NUMBER}) {
     return SynchronizedLock.synchronized<CacheEditor>(this, () async {
+      {int sequenceNumber = ANY_SEQUENCE_NUMBER}) {
       await _lazyInit();
 
       CacheEntry entry = _lruEntries[key];
@@ -128,14 +126,11 @@ class DiskLruCache implements Closeable {
       await _recordDirty(key);
 
       if (entry == null) {
-        entry = new CacheEntry(
-          key: key,
-          cache: this,
-        );
+        entry = CacheEntry(key: key, cache: this);
         _lruEntries[key] = entry;
       }
 
-      CacheEditor editor = new CacheEditor._(entry: entry, cache: this);
+      CacheEditor editor = CacheEditor._(entry: entry, cache: this);
       entry.currentEditor = editor;
       return editor;
     });
@@ -249,7 +244,7 @@ class DiskLruCache implements Closeable {
       await _deleteSafe(_recordFileBackup);
 
       _recordWriter = _newRecordWriter();
-      _hasRecordError = false;
+      // _hasRecordError = false;
 
       print("Rebuild record success!");
     });
@@ -257,9 +252,9 @@ class DiskLruCache implements Closeable {
 
   ///
   IOSink _newRecordWriter() {
-    return new IOSinkProxy(_recordFile.openWrite(mode: FileMode.append),
+    return IOSinkProxy(_recordFile.openWrite(mode: FileMode.append),
         onError: (e) async {
-      _hasRecordError = true;
+      // _hasRecordError = true;
       //_rebuildRecord();
     });
   }
@@ -294,7 +289,7 @@ class DiskLruCache implements Closeable {
           print("DiskLruCache error when init $e");
           try {
             await _deleteCache();
-          } catch (e) {}
+          } catch (_) {}
         }
       }
       await _rebuildRecord();
@@ -319,7 +314,7 @@ class DiskLruCache implements Closeable {
     try {
       List<String> lines = await _recordFile.readAsLines();
       if (lines.length < 4) {
-        throw new Exception("The record file is broken: Too small to parse");
+        throw Exception("The record file is broken: Too small to parse");
       }
       String magic = lines[0];
       String version = lines[1];
@@ -330,7 +325,7 @@ class DiskLruCache implements Closeable {
           version != VERSION ||
           filesCountString != this._filesCount.toString() ||
           blank != '') {
-        throw new Exception(
+        throw Exception(
             "The record file is broken: unexpected file header:[$magic,$version,$filesCountString,$blank]");
       }
 
@@ -352,7 +347,7 @@ class DiskLruCache implements Closeable {
   void _parseRecordLine(String line) {
     int firstSpace = line.indexOf(' ');
     if (firstSpace == -1) {
-      throw new Exception("unexpected record line: " + line);
+      throw Exception("unexpected record line: " + line);
     }
 
     int keyBegin = firstSpace + 1;
@@ -370,10 +365,7 @@ class DiskLruCache implements Closeable {
 
     CacheEntry entry = _lruEntries[key];
     if (entry == null) {
-      entry = new CacheEntry(
-        key: key,
-        cache: this,
-      );
+      entry = CacheEntry(key: key, cache: this);
       _lruEntries[key] = entry;
     }
 
@@ -388,13 +380,13 @@ class DiskLruCache implements Closeable {
     } else if (secondSpace == -1 &&
         firstSpace == DIRTY.length &&
         line.startsWith(DIRTY)) {
-      entry.currentEditor = new CacheEditor._(entry: entry, cache: this);
+      entry.currentEditor = CacheEditor._(entry: entry, cache: this);
     } else if (secondSpace == -1 &&
         firstSpace == READ.length &&
         line.startsWith(READ)) {
       // This work was already done by calling lruEntries.get().
     } else {
-      throw new Exception("unexpected journal line: " + line);
+      throw Exception("unexpected journal line: " + line);
     }
   }
 
@@ -493,7 +485,7 @@ class DiskLruCache implements Closeable {
     return SynchronizedLock.synchronized(this, () async {
       CacheEntry entry = editor.entry;
       if (entry.currentEditor != editor) {
-        throw new Exception("Commit editor's entry did not match the editor");
+        throw Exception("Commit editor's entry did not match the editor");
       }
 
       if (!entry.ready) {
@@ -557,7 +549,7 @@ class CacheEditor {
   CacheEditor._({this.entry, this.cache})
       : assert(entry != null),
         assert(cache != null),
-        hasValues = new List(cache._filesCount)
+        hasValues = List(cache._filesCount)
           ..fillRange(0, cache._filesCount, false);
 
   Future detach() {
@@ -594,7 +586,7 @@ class CacheEditor {
   Future<Stream<List<int>>> copyStream(
       int index, Stream<List<int>> stream) async {
     IOSink sink = await newSink(index);
-    return new CloseableStream(stream, onData: (List<int> data) {
+    return CloseableStream(stream, onData: (List<int> data) {
       sink.add(data);
     }, onDone: () {
       sink.close();
@@ -606,11 +598,11 @@ class CacheEditor {
   Future<IOSink> newSink(int index) {
     return SynchronizedLock.synchronized<IOSink>(cache, () {
       if (_done) {
-        throw new Exception("The editor is finish done it's job");
+        throw Exception("The editor is finish done it's job");
       }
 
       if (entry.currentEditor != this) {
-        return new EmptyIOSink();
+        return EmptyIOSink();
       }
 
       if (!entry.ready) {
@@ -619,7 +611,7 @@ class CacheEditor {
 
       File dirtyFile = entry.dirtyFiles[index];
       // this sink do not throw exception
-      return new IOSinkProxy(dirtyFile.openWrite(), onError: (e) async {
+      return IOSinkProxy(dirtyFile.openWrite(), onError: (e) async {
         print("Error when write to disk cache");
         await detach();
       });
@@ -644,9 +636,9 @@ class CacheEntry {
   int sequenceNumber;
 
   CacheEntry({this.key, this.cache, this.sequenceNumber})
-      : cleanFiles = new List(cache._filesCount),
-        dirtyFiles = new List(cache._filesCount),
-        lengths = new List(cache._filesCount) {
+      : cleanFiles = List(cache._filesCount),
+        dirtyFiles = List(cache._filesCount),
+        lengths = List(cache._filesCount) {
     // The names are repetitive so re-use the same builder to avoid allocations.
     for (int i = 0; i < cache._filesCount; i++) {
       cleanFiles[i] = new File("${cache.directory.path}/$key.$i");
@@ -678,11 +670,11 @@ class CacheEntry {
 
   Future<CacheSnapshot> snapshot() async {
     int filesCount = cache._filesCount;
-    List<CloseableStream<List<int>>> streams = new List(filesCount);
+    List<CloseableStream<List<int>>> streams = List(filesCount);
     for (int i = 0; i < filesCount; ++i) {
       if (await cleanFiles[i].exists()) {
         try {
-          streams[i] = new CloseableStream(cleanFiles[i].openRead(),
+          streams[i] = CloseableStream(cleanFiles[i].openRead(),
               onError: _onStreamError);
         } catch (e) {
           print("Open file read error $e");
@@ -692,12 +684,12 @@ class CacheEntry {
         await Future.wait(cleanFiles.map(cache._deleteSafe));
         //File not found,then the cache is not exists,remove this cache
         this.cache._onCacheReadError(
-            key, new FileSystemException("File [${cleanFiles[i]}] not found"));
+            key, FileSystemException("File [${cleanFiles[i]}] not found"));
         return null;
       }
     }
     try {
-      return new CacheSnapshot(streams: streams, lengths: lengths, key: key);
+      return CacheSnapshot(streams: streams, lengths: lengths, key: key);
     } catch (e) {
       print(e);
       rethrow;
@@ -725,7 +717,7 @@ class CacheSnapshot implements Closeable {
   CacheSnapshot(
       {this.key, List<CloseableStream<List<int>>> streams, this.lengths})
       : assert(
-            streams != null && streams.length > 0, "Streams is null or empty"),
+            streams != null && streams.isNotEmpty, "Streams is null or empty"),
         streams = List.unmodifiable(streams);
 
   Future<Uint8List> getBytes(int index) async {
@@ -747,7 +739,7 @@ class CacheSnapshot implements Closeable {
     return "CacheSnapshot:{count:${lengths.length}, key:$key}";
   }
 
-  Future<String> getString(int index, {Encoding encoding: utf8}) {
+  Future<String> getString(int index, {Encoding encoding = utf8}) {
     return IoUtil.stream2String(getStream(index), encoding);
   }
 

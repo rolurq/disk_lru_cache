@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:math' as Math;
 
 import 'package:disk_lru_cache/_src/disk_lru_cache.dart';
-import 'package:http/http.dart';
-import 'package:test/test.dart';
-import 'dart:math' as Math;
 import 'package:disk_lru_cache/disk_lru_cache.dart';
 
 Future testCache() async {
@@ -23,7 +21,7 @@ Future testCache() async {
   if (editor != null) {
     IOSink sink = await editor.newSink(0);
 
-    CacheSnapshot snapshot;
+    // CacheSnapshot snapshot;
 
     sink.write('your value');
     await sink.flush();
@@ -50,7 +48,7 @@ Future testCache() async {
     HttpClientResponse response = await request.close();
     Stream<List<int>> stream = await editor.copyStream(0, response);
     // The bytes has been written to disk at this point.
-    await new ByteStream(stream).toBytes();
+    await stream.drain();
     await editor.commit();
 
     // read stream
@@ -144,7 +142,7 @@ Future testCache() async {
   for (CacheEntry entry in entries) {
     list.add(cache.remove(entry.key));
   }
-  List<bool> results = await Future.wait(list);
+  // List<bool> results = await Future.wait(list);
 
   assert(cache.size == 0);
 
