@@ -89,12 +89,12 @@ void main() {
 
     Future test() async {
       // we must wait the file created
-      List<Future> list = [];
-      List<Future> writeDisk = [];
-      List<Future> openWrite = [];
+      List<Future<void>> list = [];
+      List<Future<void>> writeDisk = [];
+      List<Future<void>> openWrite = [];
 
       void editValue(DiskLruCache cache, String key, String value) {
-        list.add(cache.edit(key).then((CacheEditor editor) {
+        list.add(cache.edit(key).then<void>((editor) {
           if (editor != null) {
             openWrite.add(editor.newSink(0).then((IOSink sink) async {
               writeDisk.add((() async {
@@ -107,7 +107,7 @@ void main() {
                   print("Sink is null");
                 }
               })());
-            }).catchError((e) {
+            }).catchError((Object e) {
               print(e);
             }));
           } else {

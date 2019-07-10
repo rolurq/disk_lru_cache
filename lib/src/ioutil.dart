@@ -37,7 +37,7 @@ class CloseableStream<T> extends Stream<T> implements Closeable {
 
     Function _onError;
     if (this.onError != null && onError != null) {
-      _onError = (e) {
+      _onError = (Object e) {
         this.onError(e);
         onError(e);
       };
@@ -66,7 +66,7 @@ class CloseableStream<T> extends Stream<T> implements Closeable {
   }
 
   @override
-  Future close() {
+  Future<void> close() {
     if (_streamSubscription == null) {
       return Future.value();
     }
@@ -79,15 +79,20 @@ class IoUtil {
       CloseableStream<List<int>> stream, Encoding encoding) {
     Completer<String> completer = Completer();
     StringBuffer stringBuffer = StringBuffer();
-    stream.transform(encoding.decoder).listen((String content) {
-      stringBuffer.write(content);
-    }, onDone: () {
-      stream.close();
-      completer.complete(stringBuffer.toString());
-    }, onError: (e) {
-      stream.close();
-      completer.completeError(e);
-    }, cancelOnError: true);
+    stream.transform(encoding.decoder).listen(
+      (content) {
+        stringBuffer.write(content);
+      },
+      onDone: () {
+        stream.close();
+        completer.complete(stringBuffer.toString());
+      },
+      onError: (Object e) {
+        stream.close();
+        completer.completeError(e);
+      },
+      cancelOnError: true,
+    );
 
     return completer.future;
   }
@@ -109,20 +114,20 @@ class EmptyIOSink implements IOSink {
   void addError(Object error, [StackTrace stackTrace]) {}
 
   @override
-  Future addStream(Stream<List<int>> stream) {
+  Future<void> addStream(Stream<List<int>> stream) {
     return Future.value();
   }
 
   @override
-  Future close() {
+  Future<void> close() {
     return Future.value();
   }
 
   @override
-  Future get done => Future.value();
+  Future<void> get done => Future.value();
 
   @override
-  Future flush() {
+  Future<void> flush() {
     return Future.value();
   }
 
@@ -139,7 +144,7 @@ class EmptyIOSink implements IOSink {
   void writeln([Object obj = ""]) {}
 }
 
-typedef void IOSinkOnError(e);
+typedef void IOSinkOnError(Object e);
 
 /// This IOSink do not throw errors
 class IOSinkProxy implements IOSink {

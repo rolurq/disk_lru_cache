@@ -67,12 +67,12 @@ class DiskLruCache implements Closeable {
 
   int _sequenceNumber = 0;
 
-  DiskLruCache(
-      {this.directory,
-      this.maxSize = 20 * 1024 * 1024,
-      int filesCount = 2,
-      this.opCompactThreshold = MAX_OP_COUNT})
-      : assert(directory != null),
+  DiskLruCache({
+    this.directory,
+    this.maxSize = 20 * 1024 * 1024,
+    int filesCount = 2,
+    this.opCompactThreshold = MAX_OP_COUNT,
+  })  : assert(directory != null),
         _filesCount = filesCount,
         _lruEntries = LruMap(),
         _recordFile = File(p.join(directory.path, "record")),
@@ -100,8 +100,8 @@ class DiskLruCache implements Closeable {
     });
   }
 
-  Future clean() {
-    return _lock.synchronized(() async {
+  Future<List<bool>> clean() {
+    return _lock.synchronized<List<bool>>(() async {
       Iterable<CacheEntry> entries = await values;
       List<Future<bool>> list = [];
       for (CacheEntry entry in entries) {
@@ -195,7 +195,7 @@ class DiskLruCache implements Closeable {
   }
 
   Future _cleanUp() {
-    return _lock.synchronized(() async {
+    return _lock.synchronized<void>(() async {
       try {
         print("Start cleanup");
         await _trimToSize();
@@ -210,7 +210,7 @@ class DiskLruCache implements Closeable {
   }
 
   Future _rebuildRecord() {
-    return _lock.synchronized(() async {
+    return _lock.synchronized<void>(() async {
       print("Start to rebuild record");
       if (_recordWriter != null) {
         await _recordWriter.close();
@@ -231,13 +231,13 @@ class DiskLruCache implements Closeable {
         await writer.flush();
       } catch (e) {
         print("Cannot write file at this time $e");
-        return null;
+        return;
       } finally {
         try {
           await writer.close();
         } catch (e) {
           print("Cannot write file at this time $e");
-          return null;
+          return;
         }
       }
 
@@ -258,18 +258,20 @@ class DiskLruCache implements Closeable {
 
   ///
   IOSink _newRecordWriter() {
-    return IOSinkProxy(_recordFile.openWrite(mode: FileMode.append),
-        onError: (e) async {
-      // _hasRecordError = true;
-      //_rebuildRecord();
-    });
+    return IOSinkProxy(
+      _recordFile.openWrite(mode: FileMode.append),
+      onError: (e) async {
+        // _hasRecordError = true;
+        // _rebuildRecord();
+      },
+    );
   }
 
   /// Read record file, rebuild it if broken.
   Future _lazyInit() {
-    return _lock.synchronized(() async {
+    return _lock.synchronized<void>(() async {
       if (_initialized) {
-        return null;
+        return;
       }
       if (!await this.directory.exists()) {
         await this.directory.create(recursive: true);
@@ -290,7 +292,7 @@ class DiskLruCache implements Closeable {
           await _parseRecordFile();
           await _processRecords();
           _initialized = true;
-          return null;
+          return;
         } catch (e) {
           print("DiskLruCache error when init $e");
           try {
@@ -399,8 +401,9 @@ class DiskLruCache implements Closeable {
   /// Close the cache, do some clean stuff, it is an error to use cache when cache is closed.
   @override
   Future close() {
-    return _lock.synchronized(() async {
-      if (_closed) return null;
+    return _lock.synchronized<void>(() async {
+      if (_closed) return;
+
       try {
         if (_recordWriter != null) {
           await _recordWriter.close();
@@ -411,7 +414,6 @@ class DiskLruCache implements Closeable {
         _initialized = false;
       }
       print("Cache is closed");
-      return null;
     });
   }
 
@@ -426,7 +428,7 @@ class DiskLruCache implements Closeable {
   }
 
   /// Error when read the cache stream, the cache must be removed
-  void _onCacheReadError(String key, e) {
+  void _onCacheReadError(String key, Object e) {
     remove(key);
   }
 
@@ -453,7 +455,7 @@ class DiskLruCache implements Closeable {
     _size = size;
   }
 
-  Future _deleteSafe(File file) async {
+  Future<void> _deleteSafe(File file) async {
     if (await file.exists()) {
       try {
         await file.delete();
@@ -465,7 +467,7 @@ class DiskLruCache implements Closeable {
 
   /// clean the entry,remove from cache
   Future _rollback(CacheEditor editor) {
-    return _lock.synchronized(() async {
+    return _lock.synchronized<void>(() async {
       CacheEntry entry = editor.entry;
       entry.currentEditor = null;
       await Future.wait(entry.dirtyFiles.map(_deleteSafe));
@@ -488,7 +490,7 @@ class DiskLruCache implements Closeable {
   }
 
   Future _commit(CacheEditor editor) {
-    return _lock.synchronized(() async {
+    return _lock.synchronized<void>(() async {
       CacheEntry entry = editor.entry;
       if (entry.currentEditor != editor) {
         throw Exception("Commit editor's entry did not match the editor");
@@ -497,12 +499,12 @@ class DiskLruCache implements Closeable {
       if (!entry.ready) {
         if (!editor.hasValues.every((bool value) => value)) {
           unawaited(_rollback(editor));
-          return null;
+          return;
         }
         for (File file in editor.entry.dirtyFiles) {
           if (!await file.exists()) {
             unawaited(_rollback(editor));
-            return null;
+            return;
           }
         }
       }
@@ -559,7 +561,7 @@ class CacheEditor {
           ..fillRange(0, cache._filesCount, false);
 
   Future detach() {
-    return _lock.synchronized(() async {
+    return _lock.synchronized<void>(() async {
       if (entry.currentEditor == this) {
         for (int i = 0, c = cache._filesCount; i < c; i++) {
           await cache._deleteSafe(entry.dirtyFiles[i]);
@@ -575,7 +577,7 @@ class CacheEditor {
   }
 
   Future commit() async {
-    return _lock.synchronized(() async {
+    return _lock.synchronized<void>(() async {
       if (_done) {
         return;
       }
@@ -592,13 +594,18 @@ class CacheEditor {
   Future<Stream<List<int>>> copyStream(
       int index, Stream<List<int>> stream) async {
     IOSink sink = await newSink(index);
-    return CloseableStream(stream, onData: (List<int> data) {
-      sink.add(data);
-    }, onDone: () {
-      sink.close();
-    }, onError: (e) {
-      sink.addError(e);
-    });
+    return CloseableStream(
+      stream,
+      onData: (List<int> data) {
+        sink.add(data);
+      },
+      onDone: () {
+        sink.close();
+      },
+      onError: (Object e) {
+        sink.addError(e);
+      },
+    );
   }
 
   Future<IOSink> newSink(int index) {
@@ -666,7 +673,7 @@ class CacheEntry {
     return "CacheEntry{key:$key}";
   }
 
-  void _onStreamError(e) {
+  void _onStreamError(Object e) {
     this.cache._onCacheReadError(key, e);
   }
 
@@ -680,8 +687,10 @@ class CacheEntry {
     for (int i = 0; i < filesCount; ++i) {
       if (await cleanFiles[i].exists()) {
         try {
-          streams[i] = CloseableStream(cleanFiles[i].openRead(),
-              onError: _onStreamError);
+          streams[i] = CloseableStream(
+            cleanFiles[i].openRead(),
+            onError: _onStreamError,
+          );
         } catch (e) {
           print("Open file read error $e");
           return null;
@@ -690,7 +699,9 @@ class CacheEntry {
         await Future.wait(cleanFiles.map(cache._deleteSafe));
         //File not found,then the cache is not exists,remove this cache
         this.cache._onCacheReadError(
-            key, FileSystemException("File [${cleanFiles[i]}] not found"));
+              key,
+              FileSystemException("File [${cleanFiles[i]}] not found"),
+            );
         return null;
       }
     }
@@ -746,7 +757,8 @@ class CacheSnapshot implements Closeable {
   }
 
   Future<String> getString(int index, {Encoding encoding = utf8}) {
-    return IoUtil.stream2String(getStream(index), encoding);
+    final stream = CloseableStream(getStream(index));
+    return IoUtil.stream2String(stream, encoding);
   }
 
   Stream<List<int>> getStream(int index) {
@@ -760,6 +772,6 @@ class CacheSnapshot implements Closeable {
     for (CloseableStream<List<int>> stream in streams) {
       list.add(stream.close());
     }
-    return Future.wait(list);
+    return Future.wait<void>(list);
   }
 }

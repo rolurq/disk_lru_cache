@@ -210,13 +210,13 @@ class LruMap<K, V> implements Map<K, V> {
     return list;
   }
 
-  _Entry _createNew(K key, V value) {
+  _Entry<K, V> _createNew(K key, V value) {
     _Entry<K, V> entry = _Entry(key: key, value: value);
     _linkNodeLast(entry);
     return entry;
   }
 
-  void operator []=(K key, dynamic value) {
+  void operator []=(K key, V value) {
     _Entry<K, V> node = _inner[key];
     if (node == null) {
       _inner[key] = _createNew(key, value);

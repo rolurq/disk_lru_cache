@@ -114,7 +114,7 @@ void main() {
     print(DateTime.now().millisecondsSinceEpoch - now);
 
     now = DateTime.now().millisecondsSinceEpoch;
-    Map org = {};
+    Map<String, int> org = {};
     for (int i = 0; i < 10000; ++i) {
       org['key$i'] = i;
     }
@@ -123,7 +123,7 @@ void main() {
   });
 
   test("test map ", () {
-    LruMap map = LruMap.of({"a": "1", "b": "2", "c": "3"});
+    LruMap<String, String> map = LruMap.of({"a": "1", "b": "2", "c": "3"});
 
     expect(map.removeHead(), "1");
     expect(map.removeHead(), "2");
@@ -132,7 +132,7 @@ void main() {
   });
 
   test("test clear ", () {
-    LruMap map = LruMap.of({"a": "1", "b": "2", "c": "3"});
+    LruMap<String, String> map = LruMap.of({"a": "1", "b": "2", "c": "3"});
 
     expect(map.length, 3);
 
@@ -142,9 +142,9 @@ void main() {
   });
 
   test("Lru map other", () {
-    LruMap map = LruMap.of({"a": "1", "b": "2", "c": "3"});
+    LruMap<String, String> map = LruMap.of({"a": "1", "b": "2", "c": "3"});
 
-    LruMap other = LruMap();
+    LruMap<String, String> other = LruMap();
     other.addEntries(map.entries);
 
     print(other.values);
