@@ -2,13 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui' as ui show instantiateImageCodec, Codec;
 
 import 'package:disk_lru_cache/_src/ioutil.dart';
 import 'package:disk_lru_cache/_src/lock.dart';
 import 'package:disk_lru_cache/_src/lru_map.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 
 ///
 const _ = null;
