@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:pedantic/pedantic.dart';
 
 import 'ioutil.dart';
 import 'lru_map.dart';
@@ -275,7 +276,7 @@ class DiskLruCache implements Closeable {
         if (await _recordFile.exists()) {
           await _recordFileBackup.delete();
         } else {
-          _recordFileBackup.rename(_recordFile.path);
+          unawaited(_recordFileBackup.rename(_recordFile.path));
         }
       }
 
@@ -490,12 +491,12 @@ class DiskLruCache implements Closeable {
 
       if (!entry.ready) {
         if (!editor.hasValues.every((bool value) => value)) {
-          _rollback(editor);
+          unawaited(_rollback(editor));
           return null;
         }
         for (File file in editor.entry.dirtyFiles) {
           if (!await file.exists()) {
-            _rollback(editor);
+            unawaited(_rollback(editor));
             return null;
           }
         }
@@ -523,7 +524,7 @@ class DiskLruCache implements Closeable {
   Future _removeEntry(CacheEntry entry) async {
     if (entry.currentEditor != null) {
       // Prevent the edit from completing normally.
-      entry.currentEditor.detach();
+      unawaited(entry.currentEditor.detach());
     }
 
     for (int i = 0; i < _filesCount; i++) {

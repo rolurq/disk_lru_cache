@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:math' as math;
 
+import 'package:pedantic/pedantic.dart';
 import 'package:test/test.dart';
 import 'package:disk_lru_cache/disk_lru_cache.dart';
 
@@ -125,7 +126,7 @@ void main() {
         for (int i = 0; i < 10; ++i) {
           editValue(cache, "${random()}", get200k());
           String key = "${random()}";
-          cache.get(key).then((CacheSnapshot s) {
+          unawaited(cache.get(key).then((CacheSnapshot s) {
             if (s == null) {
               print('Cache miss $key');
               return;
@@ -133,7 +134,7 @@ void main() {
             s.getString(0).then((String str) {
               print("Cache hit $key");
             });
-          });
+          }));
           //cache.remove("${random()}");
         }
       }
