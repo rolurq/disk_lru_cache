@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:math' as Math;
 
-import 'package:disk_lru_cache/_src/disk_lru_cache.dart';
 import 'package:disk_lru_cache/disk_lru_cache.dart';
 
 Future testCache() async {
