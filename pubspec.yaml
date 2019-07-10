@@ -13,3 +13,4 @@ dependencies:
   synchronized: ^2.1.0+1
 
 dev_dependencies:
+  test: ^1.6.5
