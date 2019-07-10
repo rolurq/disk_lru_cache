@@ -1,6 +1,6 @@
 name: disk_lru_cache
-description: Disk lru cache for flutter.
-version: 0.0.1
+description: Disk cache using the LRU fetch policy implemented in pure dart.
+version: 0.1.0
 author: JZoom <jzoom8112@gmail.com>
 homepage: https://github.com/best-flutter/disk_lru_cache
 
